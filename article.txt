@@ -1,0 +1,129 @@
+Iterators, Co-routines and other stack torture
+Perl, Python, and Ruby head-to-head
+
+An iterator is a programming construct that solves the problem of
+trying to return a series of values to a block of client code.
+Although Perl, Python, and Ruby all allow a function to return a list,
+an iterator is still more powerful in that it can produce the values
+one at a time.  This allows the client code to start working as soon
+as the first value is produced.  It also allows the client code to
+decide how many values it wants while it is running, instead of
+passing in the desired list length that the beginning.
+
+- python
+    # Client code using a classic function
+
+    list = fiblist(start=1, length=6)
+    # Note that the length had to be specified already.
+
+    for num in list:
+        print num
+
+
+- python
+    # Client code using a Python iterator object
+
+    for num in FibIterator(start=1):
+        print num
+        if num > 5:
+            break
+
+Classic iterators have two main parts -- an initialization part, where
+any parameters (such as "start" above) are accepted and the part that
+is repeated to produce each value.  A class can have the same two
+parts -- a constructor and a method that can be called repeatedly.
+This is one way that a basic iterator can be built in any
+object-oriented language, including all three languages we're looking
+at here.
+
+- python
+    # Basic OOP iterator in Python</title>
+
+    class FibBasicIterator:
+        def __init__(self, start):  # Constructor
+            self.current = start
+            self.previous = 0
+
+        def next(self):             # Value producer
+            num = self.current
+            self.current += self.previous
+            self.previous = num
+            return num
+
+    # Client code:
+    iter = FibBasicIterator(start=1)
+    while 1:                        # In Python, true is written as: 1
+        num = iter.next()
+        print num
+        if num > 5:
+            break
+
+- perl
+    # Basic OOP iterator in Perl
+
+    package FibBasicIterator;
+
+    sub new {                               # Constructor
+        my ($class, $start) = @_;
+        bless my $self = {
+            'current' => $start,
+            'previous' => 0,
+        };
+    }
+
+    sub getnext {                           # Value producer
+        my ($self) = @_;
+        my $num = $self->{'current'};
+        $self->{'current'} += $self->{'previous'};
+        $self->{'previous'} = $num;
+        return $num;
+    }
+
+    # Client code:
+    package main;
+
+    my $iter = FibBasicIterator->new(1);    # No named params in Perl
+    while (1) {                             # 1 means true in Perl
+        my $num = $iter->getnext();
+        print "$num\n";
+        last if $num > 5;
+    }
+
+- ruby
+    # Basic OOP iterator in Ruby
+
+    class FibBasicIterator
+        def initialize(start)           # Constructor
+            @current = start
+            @previous = 0
+        end
+
+        def getnext                     # Value producer
+            num = @current
+            @current += @previous
+            @previous = num
+            return num
+        end
+    end
+
+    # Client code:
+    iter = FibBasicIterator.new(1)      # No named params in Ruby
+    loop do                             # Infinite loop
+        num = iter.getnext
+        puts num
+        break if num > 5
+    end
+
+If the iterator doesn't have an infinite number of values to provide,
+the examples we've seen so far fall short.  For instance, if the
+iterator is producing data records from a database record set, and the
+client code wants to display all of them.  At the end of the set, the
+client code will call the iterator's "next" method, but there will be
+nothing more to return.  We then want to somehow break out of the
+client code's loop.
+
+One option would be for the iterator to return a sentinel value, list
+-99 or 0 or "stop".  But all of these could potentially be a normal
+return value from an iterator, and so are a poor choice in the general
+case.  A better solution is to raise an exception in the iterator, and
+catch it outside the loop in the client code.
