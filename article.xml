@@ -1,0 +1,153 @@
+<somedoc>
+  <title>Iterators, Co-routines and other stack torture</title>
+  <subtitle>Perl, Python, and Ruby side-by-side</subtitle>
+
+  <p> An iterator is a programming construct that solves the problem
+  of trying to return a series of values to a block of client code.
+  Although Perl, Python, and Ruby all allow a function to return a
+  list, an iterator is still more powerful in that it can produce the
+  values one at a time.  This allows the client code to start working
+  as soon as the first value is produced.  It also allows the client
+  code to decide how many values it wants while it is running, instead
+  of passing in the desired list length that the beginning. </p>
+
+  <example>
+    <title>Client code using a classic function</title>
+    <lang>python</lang>
+    <code>
+list = fiblist(start=1, length=6)
+# Note: the length had to be specified already.
+
+for num in list:
+    print num
+    </code>
+  </example>
+
+  <example>
+    <title>Client code using a Python iterator object</title>
+    <lang>python</lang>
+    <code>
+for num in FibIterator(start=1):
+    print num
+    if num > 5:
+        break
+    </code>
+  </example>
+
+  <p> Iterators are generally made up of roughly two parts -- an
+  initialization part, where any parameters (such as "start" above)
+  are accepted, and the part with is repeated to produce each value.</p>
+
+  <p> You may notice the similarity between that descripion, and a
+  class with a constructor and one other method.  In fact, any
+  language which provides the encapsulation feature of OOP should be
+  sufficient for doing the most basic type of iterator. All three of
+  the langueages we're looking at here provide this feature.</p>
+
+  <example>
+    <title>Basic OOP iterator in Python</title>
+    <lang>python</lang>
+    <code>
+class FibBasicIterator:
+    def __init__(self, start):  # Constructor
+        self.current = start
+        self.previous = 0
+
+    def next(self):
+        num = self.current
+        self.current += self.previous
+        self.previous = num
+        return num
+
+# Client code:
+iter = FibBasicIterator(start=1)
+while 1:                        # 1 means true in Python
+    num = iter.next()
+    print num
+    if num > 5:
+        break
+    </code>
+  </example>
+
+  <example>
+    <title>Basic OOP iterator in Perl</title>
+    <lang>perl</lang>
+    <code>
+package FibBasicIterator;
+
+sub new {
+    my ($class, $start) = @_;
+    bless my $self = {
+        'current' => $start,
+        'previous' => 0,
+    };
+}
+
+sub getnext {
+    my ($self) = @_;
+    my $num = $self->{'current'};
+    $self->{'current'} += $self->{'previous'};
+    $self->{'previous'} = $num;
+    return $num;
+}
+
+# Client code:
+package main;
+
+my $iter = FibBasicIterator->new(1);    # No named params in Perl
+while (1) {                             # 1 means true in Perl
+    my $num = $iter->getnext();
+    print "$num\n";
+    last if $num > 5;
+}
+    </code>
+  </example>
+
+  <example>
+    <title>Basic OOP iterator in Ruby</title>
+    <lang>ruby</lang>
+    <code>
+class FibBasicIterator
+  def initialize(start)
+    @current = start
+    @previous = 0
+  end
+
+  def getnext
+    num = @current
+    @current += @previous
+    @previous = num
+    return num
+  end
+end
+
+# Client code:
+iter = FibBasicIterator.new(1)  # No named params in Ruby
+loop do                         # Infinite loop
+  num = iter.getnext
+  puts num
+  break if num > 5
+end
+    </code>
+  </example>
+
+  <p> If the iterator doesn't have an infinite number of values to
+    provide, the examples we've seen so far fall short.  For instance,
+    if the iterator is producing data records from a database record
+    set, and the client code wants to display all of them.  At the end
+    of the set, the client code will call the iterator's "next"
+    method, but there will be nothing more to return.  We then want to
+    somehow break out of the client code's loop.</p>
+
+  <p> One option would be for the iterator to return a sentinel value,
+    list -99 or 0 or "stop".  But all of these could potentially be a
+    normal return value from an iterator, and so are a poor choice in
+    the general case.  A better solution is to raise an exception in
+    the iterator, and catch it outside the loop in the client code.
+  </p>
+
+  <example>
+  </example>
+
+  <p>
+</somedoc>
